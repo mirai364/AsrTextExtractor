@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AsrTextExtractor": {
+      "commandName": "Project",
+      "commandLineArgs": "-c \"C:\\Users\\mirai\\Downloads\\AsuraEngineExtractor\\Menu\\EN.bin\" \"C:\\Users\\mirai\\Downloads\\AsuraEngineExtractor\\Menu\\JP.bin\""
+    }
+  }
+}
