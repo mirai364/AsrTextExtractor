@@ -1,27 +1,97 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace AsrTextExtractor
 {
     class Program
     {
-        static private Encoding ascii = Encoding.ASCII;
-        static private Encoding unicode = Encoding.Unicode;
-
-        static private byte[] gethash(CRCpolynomial type, bool InitialMask, bool FinalMask, byte[] data)
+        public struct OverrideData
         {
-            byte[] c;
-            using (CRC crc = new CRC(type))
-            {
-                crc.InitialMask = InitialMask;
-                crc.FinalMask = FinalMask;
+            public uint code;
+            public string sourceText;
+            public string overrideText;
 
-                c = crc.ComputeHash(data);
+            public OverrideData(string line)
+            {
+                string[] values = line.Split(',');
+                this.code = Convert.ToUInt32(values[0]);
+                this.sourceText = values[1];
+                this.overrideText = values[2];
             }
-            return c;
+        }
+
+        public struct TextByte
+        {
+            public byte[] code;
+            public byte[] length;
+            public byte[] data;
+
+            public TextByte(byte[] code, byte[] length, byte[] data)
+            {
+                this.code = code;
+                this.length = length;
+                this.data = data;
+            }
+
+            public TextByte overrideData(OverrideData overrideData)
+            {
+                if (this.getText() != overrideData.sourceText)
+                {
+                    return this;
+                }
+
+                this.length = BitConverter.GetBytes((uint)overrideData.overrideText.Length);
+                this.data = System.Text.Encoding.Unicode.GetBytes(overrideData.overrideText);
+                return this;
+            }
+
+            public byte[] getALLBytes()
+            {
+                byte[] mergedArray = new byte[code.Length + length.Length + data.Length];
+                Array.Copy(code, mergedArray, code.Length);
+                Array.Copy(length, 0, mergedArray, code.Length, length.Length);
+                Array.Copy(data, 0, mergedArray, code.Length + length.Length, data.Length);
+                return mergedArray;
+            }
+
+            public string getText()
+            {
+                string text = System.Text.Encoding.Unicode.GetString(this.data);
+                text = text.Replace("\n", "\\n");
+                text = text.Replace("\r", "\\r");
+                return text;
+            }
+
+            public uint getUintCode()
+            {
+                return BitConverter.ToUInt32(this.code);
+            }
+
+            public uint getUintLength()
+            {
+                return BitConverter.ToUInt32(this.length);
+            }
+
+            public string getCsvText(bool addCode = true)
+            {
+                if (addCode)
+                {
+                    return BitConverter.ToUInt32(this.code) + "," + this.getText();
+                }
+
+                return this.getText();
+            }
+
+            public void show()
+            {
+                Console.WriteLine("String hash: " + this.getUintCode());
+                Console.WriteLine("String Length: " + this.getUintLength());
+                Console.WriteLine("Unicode string (null terminated): " + this.getText());
+                Console.WriteLine("byte: " + BitConverter.ToString(this.getALLBytes()) );
+                Console.WriteLine();
+            }
         }
 
         static private List<string> unpack(string fileName, bool addCode = true)
@@ -32,6 +102,7 @@ namespace AsrTextExtractor
             using (MemoryStream mem = new MemoryStream(data))
             {
                 BinaryReader reader = new BinaryReader(mem);
+                char[] asure = reader.ReadChars(8);
                 char[] header = reader.ReadChars(4);
                 uint Filesize = reader.ReadUInt32();
                 uint Version = reader.ReadUInt32();
@@ -55,53 +126,138 @@ namespace AsrTextExtractor
                     byte[] hash = reader.ReadBytes(4);
                     byte[] length = reader.ReadBytes(4);
                     byte[] binData = reader.ReadBytes((int)BitConverter.ToUInt32(length) * 2);
-                    string text = System.Text.Encoding.Unicode.GetString(binData);
-                    if (addCode)
-                    {
-                        textList.Add(BitConverter.ToUInt32(hash) + "," + text);
-                    } else
-                    {
-                        textList.Add(text);
-                    }
-                    /*
-                    Console.WriteLine("String hash: " + BitConverter.ToUInt32(hash));
-                    Console.WriteLine("String Length: " + BitConverter.ToUInt32(length));
-                    Console.WriteLine("Unicode string (null terminated): " + text);
-                    */
+
+                    TextByte textByte = new TextByte(hash, length, binData);
+                    textList.Add(textByte.getCsvText(addCode));
                 }
             }
             return textList;
         }
+
+        static private void overrideFile(string overrideFileName, string sourceFileName, string outputFileName)
+        {
+            List<TextByte> textByteList = new List<TextByte>();
+            Dictionary<uint, OverrideData> overrideList = new Dictionary<uint, OverrideData>();
+
+            // Read CSV
+            using (StreamReader reader = new StreamReader(sourceFileName, Encoding.Unicode))
+            {
+                while (!reader.EndOfStream)
+                {
+                    OverrideData overrideData = new OverrideData(reader.ReadLine());
+                    overrideList.Add(overrideData.code, overrideData);
+                }
+            }
+
+            byte[] data = File.ReadAllBytes(overrideFileName);
+            using (MemoryStream mem = new MemoryStream(data))
+            {
+                BinaryReader reader = new BinaryReader(mem);
+                byte[] asure = reader.ReadBytes(8);
+                byte[] header = reader.ReadBytes(4);
+                byte[] Filesize = reader.ReadBytes(4);
+                byte[] Version = reader.ReadBytes(4);
+                byte[] Null = reader.ReadBytes(4);
+                byte[] Number_of_strings = reader.ReadBytes(4);
+                byte[] File_hash = reader.ReadBytes(4);
+                byte[] Text_string_size = reader.ReadBytes(4);
+                byte[] Language_id = reader.ReadBytes(4);
+                int num = (int)BitConverter.ToUInt32(Number_of_strings);
+
+                int size = -num * 8;
+                for (int i = 0; i < num; i++)
+                {
+                    byte[] hash = reader.ReadBytes(4);
+                    byte[] length = reader.ReadBytes(4);
+                    byte[] binData = reader.ReadBytes((int)BitConverter.ToUInt32(length) * 2);
+
+                    TextByte textByte = new TextByte(hash, length, binData);
+                    if (overrideList.ContainsKey(textByte.getUintCode()))
+                    {
+                        textByte.overrideData(overrideList[textByte.getUintCode()]);
+                    }
+
+                    size += textByte.getALLBytes().Length;
+                    textByteList.Add(textByte);
+                }
+
+                // write
+                var writer = new BinaryWriter(new FileStream(outputFileName, FileMode.Create));
+                try
+                {
+                    writer.Write(asure);
+                    writer.Write(header);
+                    writer.Write(Filesize);
+                    writer.Write(Version);
+                    writer.Write(Null);
+                    writer.Write(Number_of_strings);
+                    writer.Write(File_hash);
+                    writer.Write((uint)size);
+                    writer.Write(Language_id);
+                    for(int i=0;i< textByteList.Count;i++)
+                    {
+                        writer.Write(textByteList[i].getALLBytes());
+                    }
+
+                    var baseStream = reader.BaseStream;
+                    while (baseStream.Position != baseStream.Length)
+                    {
+                        writer.Write(reader.ReadByte());
+                    }
+                }
+                finally
+                {
+                    writer.Close();
+                }
+            }
+        }
+
+        static void usage()
+        {
+            Console.WriteLine();
+            Console.WriteLine("Usage:");
+            Console.WriteLine(" Comparison: AsrTextExtractor.exe -c <asr|en file> <asr|en file> [<csv text file>]");
+            Console.WriteLine(" Unpack    : AsrTextExtractor.exe -u <asr|en file> [<csv text file>]");
+            Console.WriteLine(" Override  : AsrTextExtractor.exe -o <asr|en file> <csv text file> [<new asr|en file>]");
+            Console.WriteLine();
+            Console.WriteLine("options:");
+            Console.WriteLine("  -c        Create Comparison table option");
+            Console.WriteLine("  -u        Unpack option");
+            Console.WriteLine("  -o        Override option");
+            Console.WriteLine();
+            Console.WriteLine("arguments:");
+            Console.WriteLine("  <asr file>      asr file path");
+            Console.WriteLine("  <csv text file> csv text file path");
+            Console.WriteLine("  <new asr file>  new asr file path");
+        }
+
 
         static void Main(string[] args)
         {
             // show usage if no args provided
             if (args.Length == 0)
             {
-                Console.WriteLine();
-                Console.WriteLine("Usage:");
-                Console.WriteLine(" Unpack: AsrTextExtractor.exe -u <asr|en file> [<csv text file>]");
-                Console.WriteLine(" Pack:   AsrTextExtractor.exe -p <csv text file> [<new asr|en file>]");
-                Console.WriteLine();
-                Console.WriteLine("options:");
-                Console.WriteLine("  -u        Unpack option");
-                Console.WriteLine("  -p        Pack option");
-                Console.WriteLine();
-                Console.WriteLine("arguments:");
-                Console.WriteLine("  <asr file>      asr file path");
-                Console.WriteLine("  <csv text file> csv text file path");
-                Console.WriteLine("  <new asr file>  new asr file path");
+                usage();
                 return;
             }
 
-            string sourceFileName;
-            string sourceFileName2;
             switch (args[0])
             {
                 case "-c":
-                    Console.WriteLine("Correspondence table");
-                    sourceFileName = args[1];
-                    sourceFileName2 = args[2];
+                    if (args.Length < 3 || args.Length > 4)
+                    {
+                        usage();
+                        return;
+                    }
+                    Console.WriteLine("Comparison table");
+                    string sourceFileName = args[1];
+                    string sourceFileName2 = args[2];
+                    string outputFileName = "output.csv";
+                    if (args.Length == 4)
+                    {
+                        outputFileName = args[3];
+                    }
+
                     Console.WriteLine("fileName : " + sourceFileName);
                     List<string> s1 = unpack(sourceFileName);
                     List<string> s2 = unpack(sourceFileName2, false);
@@ -111,19 +267,42 @@ namespace AsrTextExtractor
                     {
                         lines.Add(s1[i] + "," + s2[i]);
                     }
-                    File.WriteAllLines(@"Correspondence.csv", lines, Encoding.Unicode);
+                    File.WriteAllLines(outputFileName, lines, Encoding.Unicode);
                     break;
                 case "-u":
+                    if (args.Length < 2 || args.Length > 3)
+                    {
+                        usage();
+                        return;
+                    }
                     Console.WriteLine("Unpack");
                     sourceFileName = args[1];
+                    outputFileName = "output.csv";
+                    if (args.Length == 3)
+                    {
+                        outputFileName = args[2];
+                    }
                     Console.WriteLine("fileName : " + sourceFileName);
                     List<string> s = unpack(sourceFileName);
-                    File.WriteAllLines(@"pu.csv", s, Encoding.Unicode);
+                    File.WriteAllLines(outputFileName, s, Encoding.Unicode);
                     break;
-                case "-p":
-                    Console.WriteLine("Pack");
-                    sourceFileName = args[1];
-                    Console.WriteLine("fileName : " + sourceFileName);
+                case "-o":
+                    if (args.Length < 3 || args.Length > 4)
+                    {
+                        usage();
+                        return;
+                    }
+                    Console.WriteLine("Override");
+                    string overrideFileName = args[1];
+                    sourceFileName = args[2];
+                    outputFileName = "output.bin";
+                    if (args.Length == 4)
+                    {
+                        outputFileName = args[3];
+                    }
+                    Console.WriteLine("overrideFileName : " + overrideFileName);
+                    Console.WriteLine("sourceFileName : " + sourceFileName);
+                    overrideFile(overrideFileName, sourceFileName, outputFileName);
                     break;
             }
 
