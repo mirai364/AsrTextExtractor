@@ -15,7 +15,7 @@ namespace AsrTextExtractor
 
             public OverrideData(string line)
             {
-                string[] values = line.Split(',');
+                string[] values = line.Split("\t");
                 this.code = Convert.ToUInt32(values[0]);
                 this.sourceText = values[1];
 
@@ -66,6 +66,7 @@ namespace AsrTextExtractor
                 string text = System.Text.Encoding.Unicode.GetString(this.data);
                 text = text.Replace("\n", "\\n");
                 text = text.Replace("\r", "\\r");
+                text = text.Replace("\t", "\\t");
                 return text;
             }
 
@@ -83,7 +84,7 @@ namespace AsrTextExtractor
             {
                 if (addCode)
                 {
-                    return BitConverter.ToUInt32(this.code) + "," + this.getText();
+                    return BitConverter.ToUInt32(this.code) + "\t" + this.getText();
                 }
 
                 return this.getText();
@@ -271,7 +272,7 @@ namespace AsrTextExtractor
                     List<string> lines = new List<string>();
                     for (int i=0;i<s1.Count;i++)
                     {
-                        lines.Add(s1[i] + "," + s2[i]);
+                        lines.Add(s1[i] + "\t" + s2[i]);
                     }
                     File.WriteAllLines(outputFileName, lines, Encoding.Unicode);
                     break;
