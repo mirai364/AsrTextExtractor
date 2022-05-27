@@ -13,6 +13,8 @@
 * AsrTextExtractor.exe -o Menu.asr_en output.csv output.asr_en  
  => `commandId,Text,翻訳` の CSV から commandId と Text が一致したものを「翻訳」の内容に書き換えます
  
+* AsrTextExtractor.exe -fo Menu.asr_en output.csv output.asr_en  
+ => `commandId,Text,翻訳` の CSV から commandId が一致したものを「翻訳」の内容に書き換えます
  
 ```
 Usage:
@@ -24,6 +26,7 @@ options:
   -c        Create Comparison table option
   -u        Unpack option
   -o        Override option
+  -fo       Override Force option
 
 arguments:
   <asr file>      asr file path
