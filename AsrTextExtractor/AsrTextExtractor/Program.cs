@@ -18,7 +18,12 @@ namespace AsrTextExtractor
                 string[] values = line.Split(',');
                 this.code = Convert.ToUInt32(values[0]);
                 this.sourceText = values[1];
-                this.overrideText = values[2];
+
+                this.overrideText = values[1];
+                if (values.Length == 3)
+                {
+                    this.overrideText = values[2];
+                }
             }
         }
 
