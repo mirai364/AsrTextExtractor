@@ -35,9 +35,9 @@ namespace AsrTextExtractor
                 this.data = data;
             }
 
-            public TextByte overrideData(OverrideData overrideData)
+            public TextByte overrideData(OverrideData overrideData, bool force)
             {
-                if (this.getText() != overrideData.sourceText)
+                if (this.getText() != overrideData.sourceText && force == false)
                 {
                     return this;
                 }
@@ -134,7 +134,7 @@ namespace AsrTextExtractor
             return textList;
         }
 
-        static private void overrideFile(string overrideFileName, string sourceFileName, string outputFileName)
+        static private void overrideFile(string overrideFileName, string sourceFileName, string outputFileName, bool force = false)
         {
             List<TextByte> textByteList = new List<TextByte>();
             Dictionary<uint, OverrideData> overrideList = new Dictionary<uint, OverrideData>();
@@ -174,7 +174,7 @@ namespace AsrTextExtractor
                     TextByte textByte = new TextByte(hash, length, binData);
                     if (overrideList.ContainsKey(textByte.getUintCode()))
                     {
-                        textByte.overrideData(overrideList[textByte.getUintCode()]);
+                        textByte.overrideData(overrideList[textByte.getUintCode()], force);
                     }
 
                     size += textByte.getALLBytes().Length;
@@ -224,6 +224,7 @@ namespace AsrTextExtractor
             Console.WriteLine("  -c        Create Comparison table option");
             Console.WriteLine("  -u        Unpack option");
             Console.WriteLine("  -o        Override option");
+            Console.WriteLine("  -fo       Override Force option");
             Console.WriteLine();
             Console.WriteLine("arguments:");
             Console.WriteLine("  <asr file>      asr file path");
@@ -303,6 +304,24 @@ namespace AsrTextExtractor
                     Console.WriteLine("overrideFileName : " + overrideFileName);
                     Console.WriteLine("sourceFileName : " + sourceFileName);
                     overrideFile(overrideFileName, sourceFileName, outputFileName);
+                    break;
+                case "-fo":
+                    if (args.Length < 3 || args.Length > 4)
+                    {
+                        usage();
+                        return;
+                    }
+                    Console.WriteLine("Override");
+                    overrideFileName = args[1];
+                    sourceFileName = args[2];
+                    outputFileName = "output.bin";
+                    if (args.Length == 4)
+                    {
+                        outputFileName = args[3];
+                    }
+                    Console.WriteLine("overrideFileName : " + overrideFileName);
+                    Console.WriteLine("sourceFileName : " + sourceFileName);
+                    overrideFile(overrideFileName, sourceFileName, outputFileName, true);
                     break;
             }
 
