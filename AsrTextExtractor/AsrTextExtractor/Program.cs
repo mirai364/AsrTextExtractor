@@ -108,8 +108,23 @@ namespace AsrTextExtractor
             using (MemoryStream mem = new MemoryStream(data))
             {
                 BinaryReader reader = new BinaryReader(mem);
-                char[] asure = reader.ReadChars(8);
-                char[] header = reader.ReadChars(4);
+                byte[] asure = reader.ReadBytes(8);
+                if (BitConverter.ToUInt64(asure) != 2314885811372651329)
+                {
+                    usage();
+                    Console.WriteLine();
+                    Console.WriteLine("Unauthorized formats : " + fileName);
+                    Environment.Exit(-1);
+
+                }
+                byte[] header = reader.ReadBytes(4);
+                if (BitConverter.ToUInt32(header) != 1415074888)
+                {
+                    usage();
+                    Console.WriteLine();
+                    Console.WriteLine("Unauthorized formats : " + fileName);
+                    Environment.Exit(-1);
+                }
                 uint Filesize = reader.ReadUInt32();
                 uint Version = reader.ReadUInt32();
                 uint Null = reader.ReadUInt32();
@@ -117,7 +132,7 @@ namespace AsrTextExtractor
                 uint File_hash = reader.ReadUInt32();
                 uint Text_string_size = reader.ReadUInt32();
                 uint Language_id = reader.ReadUInt32();
-                Console.WriteLine("HEADER: " + header);
+                Console.WriteLine("HEADER: " + Encoding.ASCII.GetString(header));
                 Console.WriteLine("Filesize: " + Filesize);
                 Console.WriteLine("Version: " + Version);
                 Console.WriteLine("Null: " + Null);
@@ -160,7 +175,22 @@ namespace AsrTextExtractor
             {
                 BinaryReader reader = new BinaryReader(mem);
                 byte[] asure = reader.ReadBytes(8);
+                if (BitConverter.ToUInt64(asure) != 2314885811372651329)
+                {
+                    usage();
+                    Console.WriteLine();
+                    Console.WriteLine("Unauthorized formats : " + overrideFileName);
+                    Environment.Exit(-1);
+
+                }
                 byte[] header = reader.ReadBytes(4);
+                if (BitConverter.ToUInt32(header) != 1415074888)
+                {
+                    usage();
+                    Console.WriteLine();
+                    Console.WriteLine("Unauthorized formats : " + overrideFileName);
+                    Environment.Exit(-1);
+                }
                 byte[] Filesize = reader.ReadBytes(4);
                 byte[] Version = reader.ReadBytes(4);
                 byte[] Null = reader.ReadBytes(4);

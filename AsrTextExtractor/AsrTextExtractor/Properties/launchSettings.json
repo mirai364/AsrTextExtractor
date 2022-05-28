@@ -1,8 +1,7 @@
 {
   "profiles": {
     "AsrTextExtractor": {
-      "commandName": "Project",
-      "commandLineArgs": "-u \"D:\\Program Files (x86)\\Steam\\steamapps\\common\\Sniper Elite 4\\Text\\Menu\\Menu.asr_en\""
+      "commandName": "Project"
     }
   }
 }
