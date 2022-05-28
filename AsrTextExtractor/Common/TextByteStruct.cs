@@ -13,7 +13,7 @@ public struct TextByte
         this.data = data;
     }
 
-    public TextByte overrideData(OverrideData overrideData, bool force)
+    public TextByte overrideData(CsvData overrideData, bool force)
     {
         if (this.getText() != overrideData.sourceText && force == false)
         {

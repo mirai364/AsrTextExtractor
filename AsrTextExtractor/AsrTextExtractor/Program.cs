@@ -7,7 +7,7 @@ namespace AsrTextExtractor
 {
     class Program
     {
-        static private List<string> unpack(string fileName, bool addCode = true)
+        static private List<string> Unpack(string fileName, bool addCode = true)
         {
             List<string> textList = new List<string>();
 
@@ -18,7 +18,7 @@ namespace AsrTextExtractor
                 byte[] asure = reader.ReadBytes(8);
                 if (BitConverter.ToUInt64(asure) != 2314885811372651329)
                 {
-                    usage();
+                    Usage();
                     Console.WriteLine();
                     Console.WriteLine("Unauthorized formats : " + fileName);
                     Environment.Exit(-1);
@@ -27,7 +27,7 @@ namespace AsrTextExtractor
                 byte[] header = reader.ReadBytes(4);
                 if (BitConverter.ToUInt32(header) != 1415074888)
                 {
-                    usage();
+                    Usage();
                     Console.WriteLine();
                     Console.WriteLine("Unauthorized formats : " + fileName);
                     Environment.Exit(-1);
@@ -62,18 +62,18 @@ namespace AsrTextExtractor
             return textList;
         }
 
-        static private void overrideFile(string overrideFileName, string sourceFileName, string outputFileName, bool force = false)
+        static private void OverrideFile(string overrideFileName, string sourceFileName, string outputFileName, bool force = false)
         {
             List<TextByte> textByteList = new List<TextByte>();
-            Dictionary<uint, OverrideData> overrideList = new Dictionary<uint, OverrideData>();
+            Dictionary<uint, CsvData> overrideList = new Dictionary<uint, CsvData>();
 
             // Read CSV
             using (StreamReader reader = new StreamReader(sourceFileName, Encoding.Unicode))
             {
                 while (!reader.EndOfStream)
                 {
-                    OverrideData overrideData = new OverrideData(reader.ReadLine());
-                    overrideList.Add(overrideData.code, overrideData);
+                    CsvData csvData = new CsvData(reader.ReadLine());
+                    overrideList.Add(csvData.getCode(), csvData);
                 }
             }
 
@@ -84,7 +84,7 @@ namespace AsrTextExtractor
                 byte[] asure = reader.ReadBytes(8);
                 if (BitConverter.ToUInt64(asure) != 2314885811372651329)
                 {
-                    usage();
+                    Usage();
                     Console.WriteLine();
                     Console.WriteLine("Unauthorized formats : " + overrideFileName);
                     Environment.Exit(-1);
@@ -93,7 +93,7 @@ namespace AsrTextExtractor
                 byte[] header = reader.ReadBytes(4);
                 if (BitConverter.ToUInt32(header) != 1415074888)
                 {
-                    usage();
+                    Usage();
                     Console.WriteLine();
                     Console.WriteLine("Unauthorized formats : " + overrideFileName);
                     Environment.Exit(-1);
@@ -155,7 +155,7 @@ namespace AsrTextExtractor
             }
         }
 
-        static void usage()
+        static void Usage()
         {
             Console.WriteLine();
             Console.WriteLine("Usage:");
@@ -180,7 +180,7 @@ namespace AsrTextExtractor
             // show usage if no args provided
             if (args.Length == 0)
             {
-                usage();
+                Usage();
                 return;
             }
 
@@ -189,7 +189,7 @@ namespace AsrTextExtractor
                 case "-c":
                     if (args.Length < 3 || args.Length > 4)
                     {
-                        usage();
+                        Usage();
                         return;
                     }
                     Console.WriteLine("Comparison table");
@@ -202,8 +202,8 @@ namespace AsrTextExtractor
                     }
 
                     Console.WriteLine("fileName : " + sourceFileName);
-                    List<string> s1 = unpack(sourceFileName);
-                    List<string> s2 = unpack(sourceFileName2, false);
+                    List<string> s1 = Unpack(sourceFileName);
+                    List<string> s2 = Unpack(sourceFileName2, false);
 
                     List<string> lines = new List<string>();
                     for (int i=0;i<s1.Count;i++)
@@ -215,7 +215,7 @@ namespace AsrTextExtractor
                 case "-u":
                     if (args.Length < 2 || args.Length > 3)
                     {
-                        usage();
+                        Usage();
                         return;
                     }
                     Console.WriteLine("Unpack");
@@ -226,13 +226,13 @@ namespace AsrTextExtractor
                         outputFileName = args[2];
                     }
                     Console.WriteLine("fileName : " + sourceFileName);
-                    List<string> s = unpack(sourceFileName);
+                    List<string> s = Unpack(sourceFileName);
                     File.WriteAllLines(outputFileName, s, Encoding.Unicode);
                     break;
                 case "-o":
                     if (args.Length < 3 || args.Length > 4)
                     {
-                        usage();
+                        Usage();
                         return;
                     }
                     Console.WriteLine("Override");
@@ -245,12 +245,12 @@ namespace AsrTextExtractor
                     }
                     Console.WriteLine("overrideFileName : " + overrideFileName);
                     Console.WriteLine("sourceFileName : " + sourceFileName);
-                    overrideFile(overrideFileName, sourceFileName, outputFileName);
+                    OverrideFile(overrideFileName, sourceFileName, outputFileName);
                     break;
                 case "-fo":
                     if (args.Length < 3 || args.Length > 4)
                     {
-                        usage();
+                        Usage();
                         return;
                     }
                     Console.WriteLine("Override");
@@ -263,7 +263,7 @@ namespace AsrTextExtractor
                     }
                     Console.WriteLine("overrideFileName : " + overrideFileName);
                     Console.WriteLine("sourceFileName : " + sourceFileName);
-                    overrideFile(overrideFileName, sourceFileName, outputFileName, true);
+                    OverrideFile(overrideFileName, sourceFileName, outputFileName, true);
                     break;
             }
 
