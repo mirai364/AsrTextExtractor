@@ -124,7 +124,6 @@ namespace AsrVoiceTextExtractor
 
         static private void OverrideFile(string overrideFileName, string sourceFileName, string outputFileName)
         {
-            List<TextByte> textByteList = new List<TextByte>();
             Dictionary<string, CsvData> overrideList = new Dictionary<string, CsvData>();
 
             // Read CSV
@@ -175,7 +174,7 @@ namespace AsrVoiceTextExtractor
                             writer.Write(header);
                             break;
                         }
-                        byte[] Filesize = reader.ReadBytes(4);
+                        reader.ReadBytes(4);
                         byte[] Version = reader.ReadBytes(4);
                         if (BitConverter.ToUInt32(Version) != 4)
                         {
@@ -185,9 +184,6 @@ namespace AsrVoiceTextExtractor
                             Environment.Exit(-1);
                         }
                         byte[] Null = reader.ReadBytes(4);
-                        writer.Write(Filesize);
-                        writer.Write(Version);
-                        writer.Write(Null);
 
                         long start = reader.BaseStream.Position;
                         int count = 0;
@@ -213,17 +209,20 @@ namespace AsrVoiceTextExtractor
                         byte[] command = reader.ReadBytes(count);
                         Console.WriteLine(Encoding.ASCII.GetString(command));
 
-                        writer.Write(command);
                         byte[] code = reader.ReadBytes(4 + 4 + 4 + 1 + 4 + 4 + 4);
                         byte[] length = reader.ReadBytes(4);
                         byte[] binData = reader.ReadBytes((int)BitConverter.ToUInt32(length) * 2);
-
                         TextByte textByte = new TextByte(code, length, binData);
                         if (overrideList.ContainsKey(Encoding.ASCII.GetString(command)))
                         {
                             textByte.overrideData(overrideList[Encoding.ASCII.GetString(command)], true);
                         }
 
+                        int size = 4 + 4 + Version.Length + Null.Length + command.Length + textByte.getALLBytes().Length;
+                        writer.Write(BitConverter.GetBytes((uint)size));
+                        writer.Write(Version);
+                        writer.Write(Null);
+                        writer.Write(command);
                         writer.Write(textByte.getALLBytes());
                     }
                 }
