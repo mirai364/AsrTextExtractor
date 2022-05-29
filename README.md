@@ -33,8 +33,8 @@ arguments:
   <csv text file> csv text file path
   <new asr file>  new asr file path
  ```
-### AsrTextExtractor - 主にファイルの中に DLLN が複数の場合(Text の中身以外が対象です)
-* AsrTextExtractor.exe -u MP.pc_en [output.csv]  
+### AsrVoiceTextExtractor - 主にファイルの中に DLLN が複数の場合(Text の中身以外が対象です)
+* AsrVoiceTextExtractor.exe -u MP.pc_en [output.csv]  
  => `commandId,Text,Text` で出力  
 翻訳などにご使用ください
 
