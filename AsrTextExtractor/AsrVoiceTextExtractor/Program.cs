@@ -98,11 +98,11 @@ namespace AsrVoiceTextExtractor
 
                                 if (BitConverter.ToUInt32(lang) == sourceNumber)
                                 {
-                                    sourceText = Encoding.Unicode.GetString(binData);
+                                    sourceText = (new TextByte(lang, length, binData)).getText();
                                 }
                                 if (BitConverter.ToUInt32(lang) == overrideNumber)
                                 {
-                                    overrideText = Encoding.Unicode.GetString(binData);
+                                    overrideText = (new TextByte(lang, length, binData)).getText();
                                 }
                             }
                             break;
@@ -110,7 +110,7 @@ namespace AsrVoiceTextExtractor
                             {
                                 byte[] length = reader.ReadBytes(4);
                                 byte[] binData = reader.ReadBytes((int)BitConverter.ToUInt32(length) * 2);
-                                sourceText = overrideText = Encoding.Unicode.GetString(binData);
+                                sourceText = overrideText = (new TextByte(new byte[] { 0x00, 0x00, 0x00, 0x00 }, length, binData)).getText();
                             }
                             break;
                     }
@@ -242,7 +242,7 @@ namespace AsrVoiceTextExtractor
             Console.WriteLine();
             Console.WriteLine("options:");
             Console.WriteLine("  -u        Unpack option");
-            Console.WriteLine("  -fo       Override Force option");
+            Console.WriteLine("  -o       Override Force option");
             Console.WriteLine();
             Console.WriteLine("arguments:");
             Console.WriteLine("  <asr file>      asr file path");
@@ -269,7 +269,7 @@ namespace AsrVoiceTextExtractor
                     }
                     Console.WriteLine("Unpack");
                     string sourceFileName = args[1];
-                    string outputFileName = "output.csv";
+                    string outputFileName = Path.GetFileNameWithoutExtension(args[1]) + ".csv";
                     if (args.Length == 3)
                     {
                         outputFileName = args[2];
@@ -291,6 +291,14 @@ namespace AsrVoiceTextExtractor
                     if (args.Length == 4)
                     {
                         outputFileName = args[3];
+                    }
+                    else
+                    {
+                        if (!File.Exists(args[1] + "_back"))
+                        {
+                            File.Copy(args[1], args[1] + "_back");
+                            Console.WriteLine("backupFile : " + args[1] + "_back");
+                        }
                     }
                     Console.WriteLine("overrideFileName : " + overrideFileName);
                     Console.WriteLine("sourceFileName : " + sourceFileName);

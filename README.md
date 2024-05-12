@@ -48,7 +48,7 @@ Usage:
 
 options:
   -u        Unpack option
-  -fo       Override Force option
+  -o       Override Force option
 
 arguments:
   <asr file>      asr file path

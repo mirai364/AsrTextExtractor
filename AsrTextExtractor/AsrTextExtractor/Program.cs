@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Transactions;
 
 namespace AsrTextExtractor
 {
     class Program
     {
-        static private List<string> Unpack(string fileName, bool addCode = true)
+        static private Dictionary<ulong, string> Unpack(string fileName, bool addCode = true)
         {
-            List<string> textList = new List<string>();
+            Dictionary<ulong, string> textList = new Dictionary<ulong, string>();
 
             byte[] data = File.ReadAllBytes(fileName);
             using (MemoryStream mem = new MemoryStream(data))
@@ -56,7 +57,7 @@ namespace AsrTextExtractor
                     byte[] binData = reader.ReadBytes((int)BitConverter.ToUInt32(length) * 2);
 
                     TextByte textByte = new TextByte(hash, length, binData);
-                    textList.Add(textByte.getCsvText(addCode));
+                    textList.Add(BitConverter.ToUInt32(textByte.code), textByte.getCsvText(addCode));
                 }
             }
             return textList;
@@ -195,20 +196,29 @@ namespace AsrTextExtractor
                     Console.WriteLine("Comparison table");
                     string sourceFileName = args[1];
                     string sourceFileName2 = args[2];
-                    string outputFileName = "output.csv";
+                    string outputFileName = Path.GetFileNameWithoutExtension(args[1]) + ".csv";
                     if (args.Length == 4)
                     {
                         outputFileName = args[3];
                     }
 
                     Console.WriteLine("fileName : " + sourceFileName);
-                    List<string> s1 = Unpack(sourceFileName);
-                    List<string> s2 = Unpack(sourceFileName2, false);
+                    Dictionary<ulong, string> s1 = Unpack(sourceFileName);
+                    Dictionary<ulong, string> s2 = Unpack(sourceFileName2, false);
 
                     List<string> lines = new List<string>();
-                    for (int i=0;i<s1.Count;i++)
+                    foreach (KeyValuePair<ulong, string> kvp in s1)
                     {
-                        lines.Add(s1[i] + "\t" + s2[i]);
+                        ulong id = kvp.Key;
+                        string name = kvp.Value;
+                        if (s2.ContainsKey(key: id) == true)
+                        {
+                            lines.Add(name + "\t" + s2[id]);
+                        }
+                        else
+                        {
+                            lines.Add(name + "\t" + name);
+                        }
                     }
                     File.WriteAllLines(outputFileName, lines, Encoding.Unicode);
                     break;
@@ -220,14 +230,14 @@ namespace AsrTextExtractor
                     }
                     Console.WriteLine("Unpack");
                     sourceFileName = args[1];
-                    outputFileName = "output.csv";
+                    outputFileName = Path.GetFileNameWithoutExtension(args[1]) + ".csv";
                     if (args.Length == 3)
                     {
                         outputFileName = args[2];
                     }
                     Console.WriteLine("fileName : " + sourceFileName);
-                    List<string> s = Unpack(sourceFileName);
-                    File.WriteAllLines(outputFileName, s, Encoding.Unicode);
+                    Dictionary<ulong, string> s = Unpack(sourceFileName);
+                    File.WriteAllLines(outputFileName, s.Values, Encoding.Unicode);
                     break;
                 case "-o":
                     if (args.Length < 3 || args.Length > 4)
@@ -238,10 +248,18 @@ namespace AsrTextExtractor
                     Console.WriteLine("Override");
                     string overrideFileName = args[1];
                     sourceFileName = args[2];
-                    outputFileName = "output.bin";
+                    outputFileName = args[1];
                     if (args.Length == 4)
                     {
                         outputFileName = args[3];
+                    }
+                    else
+                    {
+                        if (! File.Exists(args[1] + "_back"))
+                        {
+                            File.Copy(args[1], args[1] + "_back");
+                            Console.WriteLine("backupFile : " + args[1] + "_back");
+                        }
                     }
                     Console.WriteLine("overrideFileName : " + overrideFileName);
                     Console.WriteLine("sourceFileName : " + sourceFileName);
@@ -256,10 +274,18 @@ namespace AsrTextExtractor
                     Console.WriteLine("Override");
                     overrideFileName = args[1];
                     sourceFileName = args[2];
-                    outputFileName = "output.bin";
+                    outputFileName = args[1];
                     if (args.Length == 4)
                     {
                         outputFileName = args[3];
+                    }
+                    else
+                    {
+                        if (!File.Exists(args[1] + "_back"))
+                        {
+                            File.Copy(args[1], args[1] + "_back");
+                            Console.WriteLine("backupFile : " + args[1] + "_back");
+                        }
                     }
                     Console.WriteLine("overrideFileName : " + overrideFileName);
                     Console.WriteLine("sourceFileName : " + sourceFileName);
